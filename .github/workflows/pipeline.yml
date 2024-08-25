@@ -49,8 +49,16 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         uses: rjstone/discord-webhook-notify@v1
         with:
+          severity: info
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           details: Deployment to production has been triggered by a push to the `main` branch.
+      - name: Notify Discord of Failure
+        if: failure()
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: error
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          details: Deployment pipeline failed on branch `${{ github.ref }}`.
 
   tag_release:
     needs: [simple_deployment_pipeline]
@@ -66,5 +74,13 @@ jobs:
       - name: Notify Discord of Tagging
         uses: rjstone/discord-webhook-notify@v1
         with:
+          severity: info
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           details: A new tag has been pushed to the repository after successful deployment.
+      - name: Notify Discord of Failure
+        if: failure()
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+            severity: error
+            webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+            details: Tagging pipeline failed after deployment on branch `${{ github.ref }}`.
