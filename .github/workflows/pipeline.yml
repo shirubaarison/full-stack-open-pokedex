@@ -11,6 +11,8 @@ on:
 jobs:
   simple_deployment_pipeline:
     runs-on: ubuntu-20.04
+    outputs:
+      skip: ${{ steps.check_skip.outputs.skip }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,9 +22,11 @@ jobs:
         id: check_skip
         run: |
           if git log -1 --pretty=%B | grep -q '#skip'; then
-            echo "skip=true" >> $GITHUB_ENV
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "it will add a new tag"
           else
-            echo "skip=false" >> $GITHUB_ENV
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "tagging will be skipped"
           fi
       - name: Install dependencies
         run: npm install
@@ -41,10 +45,11 @@ jobs:
       - name: Trigger deployment
         if: ${{ github.event_name == 'push' }}
         run: curl https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
+  
   tag_release:
     needs: [simple_deployment_pipeline]
     runs-on: ubuntu-20.04
-    if: ${{ github.event_name == 'push' && github.env.skip == 'false' }}
+    if: ${{ github.event_name == 'push' && needs.simple_deployment_pipeline.outputs.skip == 'false' }}
     steps:
       - uses: actions/checkout@v4
       - name: Bump version and push tag
